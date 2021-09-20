@@ -52,6 +52,12 @@ message(${CMAKE_MODULE_PATH})
 find_package(Pangolin REQUIRED)
 include_directories(${Pangolin_INCLUDE_DIRS})
 
+# OPENCV
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+
+add_subdirectory(slamVisualization)
 ############################################################
 # 输出可执行文件
 ############################################################
@@ -66,3 +72,11 @@ target_link_libraries(demo02_HelloPangolinThreads ${Pangolin_LIBRARIES})
 add_executable(demo03_SimpleGuiUse demo03_SimpleGuiUse.cpp)
 target_link_libraries(demo03_SimpleGuiUse ${Pangolin_LIBRARIES})
 
+add_executable(demo04_MultiView demo04_MultiView.cpp)
+target_link_libraries(demo04_MultiView ${Pangolin_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable(demo05_SimplePlot demo05_SimplePlot.cpp)
+target_link_libraries(demo05_SimplePlot ${Pangolin_LIBRARIES} )
+
+add_executable(demo06_DrawCameraPose demo06_DrawCameraPose.cpp)
+target_link_libraries(demo06_DrawCameraPose ${Pangolin_LIBRARIES} )

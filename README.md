@@ -14,6 +14,8 @@ demo05
 
 demo06
 
+具体解释见博客
+
 task1：Pangolin的简单例子
 
 task2：Pangolin与多线程
