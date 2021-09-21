@@ -2,7 +2,7 @@
  * @Author: Divenire
  * @Date: 2021-09-20 15:13:10
  * @LastEditors: Divenire
- * @LastEditTime: 2021-09-21 12:03:44
+ * @LastEditTime: 2021-09-21 15:52:29
  * @Description: SLAM显示的一个简单库
  */
 
@@ -142,7 +142,6 @@ void slamVisualization::drawCam(const float scale=10.){
     // 绘制相机轮廓线
     glBegin(GL_LINES);
         glColor3f(0.0f, 1.0f, 1.0f);
-
         glVertex3f(0, 0, 0);
         glVertex3f(w, h, z);
         glVertex3f(0, 0, 0);
