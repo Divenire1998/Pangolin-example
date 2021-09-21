@@ -2,7 +2,7 @@
  * @Author: Divenire
  * @Date: 2021-09-14 15:00:58
  * @LastEditors: Divenire
- * @LastEditTime: 2021-09-20 14:28:36
+ * @LastEditTime: 2021-09-20 22:16:14
  * @Description: 窗口控件的基本使用方法，以及视窗分割
  *               保存视窗，录制视窗，按钮，checkBox的使用,字符串，键盘绑定
  */
@@ -125,7 +125,7 @@ int main(/*int argc, char* argv[]*/)
 
         if( pangolin::Pushed(RECORD_WIN) )
             // 对整个窗口进行录像
-            pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
+            // pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608,unique_filename]//screencap.avi");
 
         // Swap frames and Process Events
         pangolin::FinishFrame();

@@ -2,11 +2,12 @@
  * @Author: Divenire
  * @Date: 2021-09-20 14:34:17
  * @LastEditors: Divenire
- * @LastEditTime: 2021-09-20 14:51:29
+ * @LastEditTime: 2021-09-21 10:02:11
  * @Description: 多视窗显示
  */
 #include <opencv2/opencv.hpp>
 #include <pangolin/pangolin.h>
+#include "opencv2/imgcodecs/legacy/constants_c.h"
 
 int main(int argc, char** argv){
     // 创建视窗
@@ -31,26 +32,30 @@ int main(int argc, char** argv){
     //因此我们没有使用setHandler()设置视图句柄，而是使用了setLock()函数设置了视图锁定的位置，该函数会在我们缩放整个视窗后，
     //按照设定的lock选项自动锁定对其位置。
     //例如在本例中，我们将左上角的视图设置为left和top锁定，右下角的视图则设置为right和bottom锁定。
+
+
+   // 创建glTexture容器用于读取图像
+    // 图像宽度、图像高度、pangolin的内部图像存储格式，是否开启现行采样，边界大小（像素）、gl图像存储格式以及gl数据存储格式。
+
     pangolin::View& cv_img_1 = pangolin::Display("image_1")
-        .SetBounds(2/3.0f, 1.0f, 0., 1/3.0f, -752/480.)
+        .SetBounds(2/3.0f, 1.0f, 0., 1/3.0f, -640/480.)
         .SetLock(pangolin::LockLeft, pangolin::LockTop);
     
     pangolin::View& cv_img_2 = pangolin::Display("image_2")
-        .SetBounds(0., 1/3.0f, 2/3.0f, 1.0, 752/480.)
+        .SetBounds(0., 1/3.0f, 1/3.0f, 1.0, -1241/376.)
         .SetLock(pangolin::LockRight, pangolin::LockBottom);
         
-    // 创建glTexture容器用于读取图像
-    // 图像宽度、图像高度、pangolin的内部图像存储格式，是否开启现行采样，边界大小（像素）、gl图像存储格式以及gl数据存储格式。
-    pangolin::GlTexture imgTexture1(752, 480, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
-    pangolin::GlTexture imgTexture2(752, 480, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
+ 
+    pangolin::GlTexture imgTexture1(640, 480, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
+    pangolin::GlTexture imgTexture2(1241, 376, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
 
     while(!pangolin::ShouldQuit()){
         // 清空颜色和深度缓存
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 从文件读取图像
-        cv::Mat img1 = cv::imread("../img/img1.png");
-        cv::Mat img2 = cv::imread("../img/img2.png");
+        cv::Mat img1 = cv::imread("/home/divenire/Divenire_ws/dataset/tum/rgbd_dataset_freiburg1_desk/rgb/1305031452.791720.png");
+        cv::Mat img2 = cv::imread("/home/divenire/Divenire_ws/dataset/KITTI/dataset/sequences/01/image_0/000001.png");
         // 向GPU装载图像
         imgTexture1.Upload(img1.data, GL_BGR, GL_UNSIGNED_BYTE);
         imgTexture2.Upload(img2.data, GL_BGR, GL_UNSIGNED_BYTE);

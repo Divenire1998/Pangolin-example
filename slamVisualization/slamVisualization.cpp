@@ -2,7 +2,7 @@
  * @Author: Divenire
  * @Date: 2021-09-20 15:13:10
  * @LastEditors: Divenire
- * @LastEditTime: 2021-09-20 17:26:01
+ * @LastEditTime: 2021-09-21 12:03:44
  * @Description: SLAM显示的一个简单库
  */
 
@@ -12,8 +12,8 @@ using namespace std;
 
 
 float ViewpointX = 0;
-float ViewpointY = 0;
-float ViewpointZ = 1;
+float ViewpointY = -100;
+float ViewpointZ = -0.1;
 
 void slamVisualization::initDraw()
 {
@@ -28,7 +28,6 @@ void slamVisualization::initDraw()
     glEnable(GL_BLEND);
     // 选择混合选项
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
 
     /**
      * @description: Define Camera Render Object (for view / scene browsing)
@@ -45,7 +44,7 @@ void slamVisualization::initDraw()
      * }
      **/
     s_cam_ = pangolin::OpenGlRenderState(
-        pangolin::ProjectionMatrix(WIN_WIDTH_, WIN_HEIGHT_, 420, 420, WIN_WIDTH_/2, WIN_HEIGHT_/2, 0.1, 1000),
+        pangolin::ProjectionMatrix(WIN_WIDTH_, WIN_HEIGHT_, 2000, 2000, WIN_WIDTH_/2, WIN_HEIGHT_/2, 0.1, 10000),
         pangolin::ModelViewLookAt(ViewpointX, ViewpointY, ViewpointZ, 0, 0, 0, 0.0,-1.0, 0.0)
     );
 
@@ -65,7 +64,8 @@ void slamVisualization::initDraw()
                     1.,
                     0.,
                     pangolin::Attach::Pix(PANEL_WIDTH),
-                    (float)WIN_WIDTH_/ (float)WIN_HEIGHT_);
+                    (float)WIN_WIDTH_/ (float)WIN_HEIGHT_)
+        .SetLock(pangolin::LockLeft, pangolin::LockTop);;
     
     // 创建显示控件
     ui_set_.clear();
@@ -77,13 +77,9 @@ void slamVisualization::initDraw()
     ui_set_.push_back(show_traj); 
     pangolin::Var<bool> show_img("ui.show_img", true, true);
     ui_set_.push_back(show_img); 
-    pangolin::Var<bool> show_coordinate("ui.show_coordinate", true, true);
+    // 显示原点
+    pangolin::Var<bool> show_coordinate("ui.origin", true, true);
     ui_set_.push_back(show_coordinate);
-    pangolin::Var<bool> save_map("ui.save_map", false, false);
-    ui_set_.push_back(save_map);
-    pangolin::Var<bool> save_win("ui.save_win", false, false);
-    ui_set_.push_back(save_win);
-
 
 
     // 创建数据显示空间
@@ -92,7 +88,9 @@ void slamVisualization::initDraw()
                     pangolin::Attach::Pix(3.0f *PANEL_HEIGHT),
                     0.,
                     pangolin::Attach::Pix(PANEL_WIDTH), 
-                    (float)WIN_WIDTH_/ (float)WIN_HEIGHT_);
+                    (float)WIN_WIDTH_/ (float)WIN_HEIGHT_)
+        .SetLock(pangolin::LockLeft, pangolin::LockCenter);
+                    
     data_set_.clear();
     pangolin::Var<VecXd> curr_pos("data.pos", VecXd());
     data_set_.push_back(curr_pos);
@@ -101,21 +99,35 @@ void slamVisualization::initDraw()
 
     // 原图片显示
     d_img_ = pangolin::CreateDisplay()
-        .SetBounds(
-                    pangolin::Attach::Pix(1.0f *PANEL_HEIGHT), 
-                    pangolin::Attach::Pix(2.0f *PANEL_HEIGHT), 
-                    0.,
-                     pangolin::Attach::Pix(PANEL_WIDTH), (float)WIN_WIDTH_/ (float)WIN_HEIGHT_
-        )
-        .SetLock(pangolin::LockLeft, pangolin::LockBottom);
+    .SetBounds(
+                pangolin::Attach::Pix(1.0f *PANEL_HEIGHT), 
+                pangolin::Attach::Pix(2.0f *PANEL_HEIGHT), 
+                0.,
+                pangolin::Attach::Pix(PANEL_WIDTH),
+                (float)WIN_WIDTH_/ (float)WIN_HEIGHT_
+    )
+    .SetLock(pangolin::LockLeft, pangolin::LockBottom);
+
 
     // 创建glTexture容器用于读取图像
     // 图像宽度、图像高度、pangolin的内部图像存储格式，是否开启现行采样，边界大小（像素）、gl图像存储格式以及gl数据存储格式。
-    imageTexture_ = pangolin::GlTexture(752, 480, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
+    imageTexture_ = pangolin::GlTexture(PICTURE_WIDTH_, PICTURE_HEIGHT_, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
+
+
+    // 跟踪图片显示
+    d_track_ = pangolin::CreateDisplay()
+        .SetBounds(0., pangolin::Attach::Pix(1.0f *PANEL_HEIGHT), 
+                0., pangolin::Attach::Pix(PANEL_WIDTH), (float)WIN_WIDTH_/ (float)WIN_HEIGHT_)
+        .SetLock(pangolin::LockLeft, pangolin::LockBottom);
+
+    trackTexture_ = pangolin::GlTexture(PICTURE_WIDTH_, PICTURE_HEIGHT_, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
+
+
+    
 }
 
 // 绘制相机的外框
-void slamVisualization::drawCam(const float scale){
+void slamVisualization::drawCam(const float scale=10.){
 
     if(scale < 0){
         cerr << "scale should be positive !\n";
@@ -220,7 +232,7 @@ void slamVisualization::drawCoordinate(){
     if(!coordinate_visible_)
         return;
     // 绘制位于原点的坐标系
-    glLineWidth(3);
+    glLineWidth(30);
     glBegin(GL_LINES);
         glColor3f(1.0f, 0.f, 0.f);
         glVertex3f(0, 0, 0);
@@ -235,15 +247,24 @@ void slamVisualization::drawCoordinate(){
 }
 
 // 显示当前的图像
-void slamVisualization::displayImg(cv::Mat& originImg){
+void slamVisualization::displayImg(cv::Mat& originImg,cv::Mat& trackImg){
+    
     if(!img_visible_)
         return;
+ 
+    // 图像装载到GPU中
     imageTexture_.Upload(originImg.data, GL_BGR, GL_UNSIGNED_BYTE);
-        // 显示图像
+    // 显示图像
     d_img_.Activate();
     glColor3f(1.0f, 1.0f, 1.0f); // 设置默认背景色，对于显示图片来说，不设置也没关系
     imageTexture_.RenderToViewportFlipY(); // 需要反转Y轴，否则输出是倒着的
 
+    // 图像装载到GPU中
+    trackTexture_.Upload(trackImg.data, GL_BGR, GL_UNSIGNED_BYTE);
+    // 显示图像
+    d_track_.Activate();
+    glColor3f(1.0f, 1.0f, 1.0f); // 设置默认背景色，对于显示图片来说，不设置也没关系
+    trackTexture_.RenderToViewportFlipY(); // 需要反转Y轴，否则输出是倒着的
 }
 
 // 激活显示的图像
@@ -262,11 +283,6 @@ void slamVisualization::registerUICallback()
     img_visible_ = ui_set_[3] ? true : false;
     coordinate_visible_ = ui_set_[4] ? true : false;
     
-    if(pangolin::Pushed(ui_set_[5]))
-        d_cam_.SaveOnRender("map");
-    
-    if(pangolin::Pushed(ui_set_[6]))
-        pangolin::SaveWindowOnRender("win");
 }
 
 void slamVisualization::displayData(Eigen::Vector3d &pos, Eigen::Quaterniond& quat){
@@ -278,3 +294,6 @@ void slamVisualization::displayData(Eigen::Vector3d &pos, Eigen::Quaterniond& qu
     data_set_[0] = tmp_pose;
     data_set_[1] = tmp_euler;
 }
+
+
+

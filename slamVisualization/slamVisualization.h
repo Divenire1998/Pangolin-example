@@ -15,6 +15,7 @@ struct VecXd
 {
     Eigen::VectorXd vec_ = Eigen::Vector3d::Zero();
 };
+
 // 使用inline休息避免头文件中的非模板、非成员重复包含
 inline ostream& operator << (ostream& out, const VecXd& r){
     int N = r.vec_.size();
@@ -62,9 +63,16 @@ private:
     int WIN_WIDTH_;
     int WIN_HEIGHT_;
 
+    // 图像尺寸
+    int PICTURE_WIDTH_;
+    int PICTURE_HEIGHT_;
+
 public:
     slamVisualization();
-    slamVisualization(int width = 640, int height = 480):WIN_WIDTH_(width), WIN_HEIGHT_(height){}
+    slamVisualization(int width = 640, int height = 480,int pic_width=1241,int pic_height=376)
+                    :WIN_WIDTH_(width), WIN_HEIGHT_(height),PICTURE_WIDTH_(pic_width),PICTURE_HEIGHT_(pic_height)
+    {}
+
     ~slamVisualization(){}
     // ------------------------------------------------
 
@@ -76,15 +84,16 @@ public:
 
     void drawTraj(vector<Eigen::Vector3d> &traj);
 
-    void drawCam(const float scale = 1.);
+    void drawCam(const float scale );
 
     void drawCoordinate();
 
-    void displayImg(cv::Mat &originImg);
+    void displayImg(cv::Mat &originImg,cv::Mat& trackImg);
 
     void displayData(Eigen::Vector3d &pos, Eigen::Quaterniond &quat);
 
     void registerUICallback();
+
 
 };
 

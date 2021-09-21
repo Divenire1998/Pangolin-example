@@ -2,7 +2,7 @@
  * @Author: Divenire
  * @Date: 2021-09-20 15:18:44
  * @LastEditors: Divenire
- * @LastEditTime: 2021-09-20 20:11:59
+ * @LastEditTime: 2021-09-21 11:58:04
  * @Description: 使用KITTI数据集作为简单的SLAM演示程序
  */
 
@@ -11,18 +11,102 @@
 
 using namespace cv;
 using namespace std;
+using namespace Eigen;
 
-queue<string> imgFileNames;
-queue<ulong> imgTimeStamps;
+// 载入图像
+void LoadImagesKITTI(const string &strPathToSequence, vector<string> &vstrImageLeft,
+                vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
-const char * dataset_gt = "/home/divenire/Divenire_ws/dataset/EuRoC/MH_01_easy/mav0/state_groundtruth_estimate0/data.csv";
-const char * dataset_img_time = "/home/divenire/Divenire_ws/dataset/EuRoC/MH_01_easy/mav0/cam0/data.csv";
-const char * dataset_img = "/home/divenire/Divenire_ws/dataset/EuRoC/MH_01_easy/mav0/cam0/data/";
 
+void LoadGroundTruthKITTI(const string &strPathToGt,std::vector<Eigen::Isometry3d>& vTransform);
+
+
+string kitti_dataset_path = "/home/divenire/Divenire_ws/dataset/KITTI/dataset/sequences/00";
+string kitti_gt_path = "/home/divenire/Divenire_ws/dataset/KITTI/dataset/poses/00.txt";
+
+
+
+int main(int argc, char  *argv[])
+{
+
+    // Retrieve paths to images
+    vector<string> vstrImageLeft;
+    vector<string> vstrImageRight;
+    vector<double> vTimestamps;
+    LoadImagesKITTI(kitti_dataset_path, vstrImageLeft, vstrImageRight, vTimestamps);
+
+    // load ground truth
+    vector<Eigen::Isometry3d> vTransform;
+    LoadGroundTruthKITTI(kitti_gt_path,vTransform);
+
+
+    // 获得图像的数量
+    const int nImages = vstrImageLeft.size();
+
+    //初始化查看器
+    slamVisualization visualizer(1280,800,1241,376);
+
+    // 初始化视窗
+    visualizer.initDraw();
+
+    // 轨迹显示
+    vector<Eigen::Vector3d> traj;
+
+    // 双目图像显示
+    cv::Mat imLeft, imRight;
+
+    // 预先创建一个Window用于显示图像
+    cv::namedWindow("Current Frame");
+
+    for(int ni=0; ni<nImages; ni++)
+    {
+
+        double tframe = vTimestamps[ni];
+        // 清除颜色缓存
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        // 注册ui回调函数
+        visualizer.registerUICallback();
+
+        // 开启相机视图
+        visualizer.ActivateScamView();
+        // 使用白色背景
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+        Eigen::Quaterniond quat = Eigen::Quaterniond(vTransform[ni].rotation());
+        Eigen::Vector3d pos = vTransform[ni].translation();
+        traj.push_back(pos);
+        
+        // 显示数据
+        visualizer.displayData(pos, quat);
+        // 绘制轨迹可视化部分
+        visualizer.drawCoordinate();
+        visualizer.drawCamWithPose(pos, quat);
+        visualizer.drawTraj(traj);
+
+        // Pangolin显示图像
+        imLeft = cv::imread(vstrImageLeft[ni]);
+        imRight = cv::imread(vstrImageRight[ni]);
+        visualizer.displayImg(imLeft,imRight);
+
+        // OPENCV显示图像
+        cv::imshow("Current Frame",imLeft);
+        // 等待一下，防止图像刷新不出来
+        cv::waitKey(1);
+
+        // 循环与退出判断
+        pangolin::FinishFrame();
+        
+        if(pangolin::ShouldQuit())
+            break;
+
+    }
+    
+    return 0;
+}
 
 
 // 类似 mono_kitti.cc， 不过是生成了双目的图像路径
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+void LoadImagesKITTI(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps)
 {
     ifstream fTimes;
@@ -60,107 +144,28 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
 
 
-
-
-
-
-
-int main(int argc, char  *argv[])
+void LoadGroundTruthKITTI(const string &strPathToGt,std::vector<Eigen::Isometry3d>& vTransform)
 {
-
-    
-    FILE *fp_gt, *fp_img;
-    // 请自行修改数据集路径
-    fp_gt = fopen(dataset_gt, "r");
-    fp_img = fopen(dataset_img_time, "r");
-    if(fp_gt == nullptr || fp_img == nullptr)
-    {
-        cout << "failed to open file !\n";
-        return -1;
+    std::ifstream fin(kitti_gt_path);
+    if(!fin){
+        cout << "cannot find trajectory file at " << strPathToGt << endl;
+        return ;
     }
-    // =================== 读取图片路径 ====================//
-    // 跳过第一行
-    char fl_buf[1024];
-    fgets(fl_buf, sizeof(fl_buf), fp_img);
-  
-    while(!feof(fp_img)){
-        char filename[23];
-        ulong timestamp;
-        fscanf(fp_img, "%lu,%s", &timestamp, filename);
-        
-        imgTimeStamps.push(timestamp);
-        imgFileNames.push(string(filename));
+
+      while (!fin.eof()) {
+        double d,h,l;
+        Eigen::Matrix3d R;
+        fin >> R(0,0)>>R(0,1)>>R(0,2)>>d
+            >> R(1,0)>>R(1,1)>>R(1,2)>>h
+            >> R(2,0)>>R(2,1)>>R(2,2)>>l;
+
+        Isometry3d Twr=Eigen::Isometry3d::Identity();
+        Twr.rotate(R);
+        Twr.pretranslate(Vector3d(d, h, l));
+        vTransform.push_back(Twr);
+        // cout<<"欧式变换 \n"<<Twr.matrix()<<endl<<"欧式变换的旋转矩阵 \n"<<Twr.rotation()<<endl<<"欧式变换的平移部分 \n"<<Twr.translation().transpose()<<endl;
     }
-    // ===================读取groundtruth =================================== //
-    // 跳过第一行
-    fgets(fl_buf, sizeof(fl_buf), fp_gt);
+    cout << "read total " << vTransform.size() << " pose entries" << endl;
+   
 
-    //初始化查看器
-    slamVisualization visualizer(1504, 960);
-    // 初始化视窗
-    visualizer.initDraw();
-
-    vector<Eigen::Vector3d> traj;
-
-
-while (!feof(fp_gt))
-    {
-        // 常规操作
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        visualizer.ActivateScamView();
-
-        // 注册ui回调函数
-        visualizer.registerUICallback();
-
-        // 从数据集中读取数据
-        // 创建数据寄存器    
-        ulong time_stamp(0);
-        double px(0.), py(0.), pz(0.);
-        double qw(0.), qx(0.), qy(0.), qz(0.);
-        double vx(0.), vy(0.), vz(0.);
-        double bwx(0.), bwy(0.), bwz(0.), bax(0.), bay(0.), baz(0.);
-        fscanf(fp_gt, "%lu,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-            &time_stamp, &px, &py, &pz,
-            &qw, &qx, &qy, &qz,
-            &vx, &vy, &vz,
-            &bwx, &bwy, &bwz,
-            &bax, &bay, &baz);
-
-        Eigen::Quaterniond quat(qw, qx, qy, qz);
-        Eigen::Vector3d pos(px, py, pz);
-        traj.push_back(pos);
-
-        // 显示当前的姿态和位置
-        visualizer.displayData(pos, quat);
-
-        // 绘制轨迹可视化部分
-        visualizer.drawCoordinate();
-        visualizer.drawCamWithPose(pos, quat);
-        visualizer.drawTraj(traj);
-
-        // 弹出当前时刻之前的图像
-        double imu_time, img_time;
-        imu_time = (double)time_stamp / 1e9; 
-        img_time = (double)imgTimeStamps.front() / 1e9;
-        if(imu_time > img_time){
-            // cout << imgFileNames.front() << endl;
-            imgTimeStamps.pop();
-            imgFileNames.pop();
-        }
-
-
-        // 显示图像
-        string img_file = dataset_img + imgFileNames.front();
-        cv::Mat img = cv::imread(img_file, CV_LOAD_IMAGE_COLOR);
-        visualizer.displayImg(img);
-        
-        // 循环与退出判断
-        pangolin::FinishFrame();
-        
-        if(pangolin::ShouldQuit())
-            break;
-
-    }
-    
-    return 0;
 }
