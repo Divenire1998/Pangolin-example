@@ -1,8 +1,8 @@
 /*
  * @Author: Divenire
  * @Date: 2021-09-20 14:34:17
- * @LastEditors: Divenire
- * @LastEditTime: 2021-09-21 10:02:11
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-09-22 16:33:40
  * @Description: 多视窗显示
  */
 #include <opencv2/opencv.hpp>
@@ -46,6 +46,8 @@ int main(int argc, char** argv){
         .SetLock(pangolin::LockRight, pangolin::LockBottom);
         
  
+
+
     pangolin::GlTexture imgTexture1(640, 480, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
     pangolin::GlTexture imgTexture2(1241, 376, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
 
@@ -53,9 +55,15 @@ int main(int argc, char** argv){
         // 清空颜色和深度缓存
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
         // 从文件读取图像
         cv::Mat img1 = cv::imread("/home/divenire/Divenire_ws/dataset/tum/rgbd_dataset_freiburg1_desk/rgb/1305031452.791720.png");
         cv::Mat img2 = cv::imread("/home/divenire/Divenire_ws/dataset/KITTI/dataset/sequences/01/image_0/000001.png");
+
+        // 像素排列方式重新布局，防止KITTI数据图片显示失败
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+
         // 向GPU装载图像
         imgTexture1.Upload(img1.data, GL_BGR, GL_UNSIGNED_BYTE);
         imgTexture2.Upload(img2.data, GL_BGR, GL_UNSIGNED_BYTE);

@@ -1,8 +1,8 @@
 /*
  * @Author: Divenire
  * @Date: 2021-09-20 15:13:10
- * @LastEditors: Divenire
- * @LastEditTime: 2021-09-21 15:52:29
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-09-22 16:32:18
  * @Description: SLAM显示的一个简单库
  */
 
@@ -108,22 +108,12 @@ void slamVisualization::initDraw()
     )
     .SetLock(pangolin::LockLeft, pangolin::LockBottom);
 
-
-    // 创建glTexture容器用于读取图像
-    // 图像宽度、图像高度、pangolin的内部图像存储格式，是否开启现行采样，边界大小（像素）、gl图像存储格式以及gl数据存储格式。
-    imageTexture_ = pangolin::GlTexture(PICTURE_WIDTH_, PICTURE_HEIGHT_, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
-
-
     // 跟踪图片显示
     d_track_ = pangolin::CreateDisplay()
         .SetBounds(0., pangolin::Attach::Pix(1.0f *PANEL_HEIGHT), 
                 0., pangolin::Attach::Pix(PANEL_WIDTH), (float)WIN_WIDTH_/ (float)WIN_HEIGHT_)
         .SetLock(pangolin::LockLeft, pangolin::LockBottom);
 
-    trackTexture_ = pangolin::GlTexture(PICTURE_WIDTH_, PICTURE_HEIGHT_, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
-
-
-    
 }
 
 // 绘制相机的外框
@@ -246,20 +236,28 @@ void slamVisualization::drawCoordinate(){
 }
 
 // 显示当前的图像
-void slamVisualization::displayImg(cv::Mat& originImg,cv::Mat& trackImg){
+void slamVisualization::displayImg( const string leftImagePath, const string rightImagePath){
     
     if(!img_visible_)
         return;
  
-    // 图像装载到GPU中
-    imageTexture_.Upload(originImg.data, GL_BGR, GL_UNSIGNED_BYTE);
+    // 像素排列方式重新布局，防止KITTI数据图片显示失败
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+
+
+    // 使用Pangolin读取图片
+    pangolin::GlTexture imageTexture_((pangolin::LoadImage(leftImagePath)));
+
     // 显示图像
     d_img_.Activate();
     glColor3f(1.0f, 1.0f, 1.0f); // 设置默认背景色，对于显示图片来说，不设置也没关系
     imageTexture_.RenderToViewportFlipY(); // 需要反转Y轴，否则输出是倒着的
 
-    // 图像装载到GPU中
-    trackTexture_.Upload(trackImg.data, GL_BGR, GL_UNSIGNED_BYTE);
+
+
+    // 使用Pangolin读取图片
+    pangolin::GlTexture trackTexture_((pangolin::LoadImage(rightImagePath)));
+
     // 显示图像
     d_track_.Activate();
     glColor3f(1.0f, 1.0f, 1.0f); // 设置默认背景色，对于显示图片来说，不设置也没关系
@@ -293,6 +291,3 @@ void slamVisualization::displayData(Eigen::Vector3d &pos, Eigen::Quaterniond& qu
     data_set_[0] = tmp_pose;
     data_set_[1] = tmp_euler;
 }
-
-
-

@@ -88,7 +88,7 @@ public:
 
     void drawCoordinate();
 
-    void displayImg(cv::Mat &originImg,cv::Mat& trackImg);
+    void displayImg(const string leftImagePath,const string rightImagePath);
 
     void displayData(Eigen::Vector3d &pos, Eigen::Quaterniond &quat);
 

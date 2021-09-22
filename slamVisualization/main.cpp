@@ -1,13 +1,15 @@
 /*
  * @Author: Divenire
  * @Date: 2021-09-20 15:18:44
- * @LastEditors: Divenire
- * @LastEditTime: 2021-09-21 11:58:04
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-09-22 16:30:39
  * @Description: 使用KITTI数据集作为简单的SLAM演示程序
  */
 
 #include "slamVisualization.h"
 #include "opencv2/imgcodecs/legacy/constants_c.h"
+#include "pangolin/image/image_io.h"
+
 
 using namespace cv;
 using namespace std;
@@ -83,10 +85,13 @@ int main(int argc, char  *argv[])
         visualizer.drawCamWithPose(pos, quat);
         visualizer.drawTraj(traj);
 
+
+        visualizer.SetView();
+
         // Pangolin显示图像
         imLeft = cv::imread(vstrImageLeft[ni]);
         imRight = cv::imread(vstrImageRight[ni]);
-        visualizer.displayImg(imLeft,imRight);
+        visualizer.displayImg(vstrImageLeft[ni],vstrImageRight[ni]);
 
         // OPENCV显示图像
         cv::imshow("Current Frame",imLeft);
