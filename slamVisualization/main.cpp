@@ -86,8 +86,6 @@ int main(int argc, char  *argv[])
         visualizer.drawTraj(traj);
 
 
-        visualizer.SetView();
-
         // Pangolin显示图像
         imLeft = cv::imread(vstrImageLeft[ni]);
         imRight = cv::imread(vstrImageRight[ni]);

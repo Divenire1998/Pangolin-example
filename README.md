@@ -1,8 +1,5 @@
 # Pangolin example注释 与 slam可视化
 
-TODO
-
-- [ ] 部分图片显示有问题。
 
 Pangolin部分范例程序添加注释，slam位姿可视化程序
 
