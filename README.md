@@ -17,4 +17,5 @@ demo06 : 绘制相机的姿态
 
 slamVisualization :使用Pangolin进行SLAM可视化
 
-![image-20210921165424972](https://tuchuang-1998.oss-accelerate.aliyuncs.com/Picgo/image-20210921165424972.png)
+![image-20210922165314236](https://tuchuang-1998.oss-accelerate.aliyuncs.com/Picgo/image-20210922165314236.png)
+
